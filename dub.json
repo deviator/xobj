@@ -1,0 +1,7 @@
+{
+    "name": "xobj",
+    "description": "Signal slot architecture",
+    "authors": [ "Oleg Butko (deviator)" ],
+    "license": "MIT",
+    "targetType": "sourceLibrary"
+}

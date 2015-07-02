@@ -1,0 +1,17 @@
+*.lib
+*.so
+*.a
+*.o
+
+.*.sw*
+.dub
+*.log
+*.def
+*.lst
+*.sh
+bin
+doc
+dub.selections.json
+__test__library__
+
+example/example

@@ -1,0 +1,6 @@
+{
+    "name": "example",
+    "targetType": "executable",
+    "dflags": [ "-unittest" ],
+    "dependencies" : { "xobj": { "path" : ".." } }
+}
