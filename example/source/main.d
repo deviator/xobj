@@ -1,6 +1,4 @@
 import std.stdio;
-import std.traits;
-import std.typetuple;
 
 import xobj;
 

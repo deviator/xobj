@@ -18,13 +18,13 @@ public:
     enum signal;
 
 protected:
-    void __createSlotContext();
-    void __createSignals();
+    void createSlotContext();
+    void createSignals();
 
     final void prepareXBase()
     {
-        __createSlotContext();
-        __createSignals();
+        createSlotContext();
+        createSignals();
     }
 
     final auto newSlot(Args...)( void delegate(Args) f )
@@ -52,7 +52,7 @@ protected:
             final
             {
                 public SlotContext slotContext() @property { return __slot_context; }
-                protected void __createSlotContext() { __slot_context = newCH!SlotContext; }
+                protected void createSlotContext() { __slot_context = newCH!SlotContext; }
             }
         }
 
@@ -60,12 +60,12 @@ protected:
 
         override protected
         {
-            static if( isAbstractFunction!__createSignals )
-                void __createSignals() { mixin( mix.createSignalsMixinString!(typeof(this)) ); }
+            static if( isAbstractFunction!createSignals )
+                void createSignals() { mixin( mix.createSignalsMixinString!(typeof(this)) ); }
             else
-                void __createSignals()
+                void createSignals()
                 {
-                    super.__createSignals();
+                    super.createSignals();
                     mixin( mix.createSignalsMixinString!(typeof(this)) );
                 }
         }
@@ -78,8 +78,8 @@ protected:
         static if( list.length == 0 ) {}
         else static if( list.length > 1 )
         {
-            mixin defineSignalsImpl!(T,list[0]);
-            mixin defineSignalsImpl!(T,list[1..$]);
+            mixin defineSignalsImpl!(T,list[0..$/2]);
+            mixin defineSignalsImpl!(T,list[$/2..$]);
         }
         else mixin( mix.signalMixinString!(T,list[0]) );
     }
@@ -127,7 +127,7 @@ protected:
                 }
                 else alias impl = empty;
             }
-            else alias impl = TypeTuple!( impl!(names[0]), impl!(names[1..$]) );
+            else alias impl = TypeTuple!( impl!(names[0..$/2]), impl!(names[$/2..$]) );
         }
     }
 
@@ -146,6 +146,10 @@ protected:
             enum temp_name = __traits(identifier,temp);
             enum func_name = mix.getMixName( temp_name );
 
+            enum temp_attribs = sort([__traits(getFunctionAttributes,temp)]).array;
+            static assert( temp_attribs == ["@system"],
+                    format( "fail Mix X for '%s': template signal function allows only @system attrib", T.stringof ) );
+
             static if( __traits(hasMember,T,func_name) )
             {
                 alias base = AT!(__traits(getMember,T,func_name));
@@ -154,37 +158,31 @@ protected:
                         format( "fail Mix X for '%s': target signal function '%s' must be abstract in base class",
                             T.stringof, func_name ) );
 
-                enum temp_attribs = sort([__traits(getFunctionAttributes,temp)]).array;
                 enum base_attribs = sort([__traits(getFunctionAttributes,base)]).array;
-
-                static assert( base_attribs == temp_attribs,
-                        format( "fail Mix X for '%s'; template signal function '%s' must have same attribs as base target function '%s': have %s, expect %s",
-                            T.stringof, temp_name, func_name, temp_attribs, base_attribs ) );
+                static assert( temp_attribs == ["@system"],
+                        format( "fail Mix X for '%s': target signal function allows only @system attrib", T.stringof ) );
 
                 enum need_override = true;
             }
             else enum need_override = false;
 
-            enum signal_name = signalPrefix ~ func_name;
+            enum signal_name = signal_prefix ~ func_name;
 
             enum args_define = format( "alias %sArgs = ParameterTypeTuple!%s;", func_name, temp_name );
-            enum signal_define = format( "Signal!(%sArgs) %s;", func_name, signal_name );
-            enum func_impl = format( "final %1$s %2$s void %3$s(%3$sArgs args) %4$s { %5$s(args); }",
-                    (need_override ? "override" : ""),
-                    (__traits(getProtection,temp)),
-                    func_name,
-                    [__traits(getFunctionAttributes,temp)].join(" "),
-                    signal_name );
+            enum temp_protection = __traits(getProtection,temp);
+            enum signal_define = format( "%s Signal!(%sArgs) %s;", temp_protection, func_name, signal_name );
+            enum func_impl = format( "final %1$s %2$s void %3$s(%3$sArgs args) { %4$s(args); }",
+                    (need_override ? "override" : ""), temp_protection, func_name, signal_name );
 
             return [args_define, signal_define, func_impl].join("\n");
         }
 
-        string signalPrefix() @property { return "signal_"; }
+        enum signal_prefix = "signal_";
 
         string createSignalsMixinString(T)() @property
         {
             auto signals = [ __traits(derivedMembers,T) ]
-                .filter!(a=>a.startsWith(signalPrefix));
+                .filter!(a=>a.startsWith(signal_prefix));
 
             /+ TODO: if you use "signal_" prefix in your class
              +       filter!(a=>isSignal(__traits(getMember,T,a)))

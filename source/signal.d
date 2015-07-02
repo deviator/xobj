@@ -27,7 +27,7 @@ class Signal(Args...) : SignalConnector, ContextHandler
 
 protected:
 
-    alias Slot!Args TSlot;
+    alias TSlot = Slot!Args;
 
     TSlot[] slots;
 

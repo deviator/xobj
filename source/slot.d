@@ -51,7 +51,7 @@ protected:
     SlotContext ctrl;
 
 public:
-    alias void delegate(Args) Func;
+    alias Func = void delegate(Args);
 
     this( SlotContext ctrl, Func func )
     {
